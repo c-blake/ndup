@@ -1,0 +1,44 @@
+#!/bin/sh
+if [ $# -lt 1 ]; then cat <<EOF
+Usage:
+  DJ=\$(nproc) CJ=\$(nproc) TMPDIR=... digester=framed ndup DIRECTORY
+analyzes files in DIRECTORY for "near" duplicates.  Specifically, it will:
+  1) update file name list
+  2) update digests with \$DJ jobs in parallel
+  3) updates set files (to not re-make sets for every intersection)
+  4) build list of unique set|digest pairs to compare
+  5) compare them in more detail with \$CJ jobs in parallel
+TMPDIR cannot need shell quotes, but otherwise pathnames just need no-TAB-NL.
+EOF
+    exit 1
+fi
+d=`basename "$1"`                               # So have nd.Foo work dirs
+w="${TMPDIR:-/tmp}/nd.$d"                       # w = work directory
+: ${DJ:=$(nproc)}                               # Assume fast parallel IO BW
+: ${digester:="framed"}
+cd "$1"
+
+mkdir -p "$w"                                   # Make a working data directory
+
+lncs -r0 -t0 -.n1 -e '' | sort -z >$w/f0        # 1st hard link->/f0 (~ files.0)
+#NOTE: Dir traversal/hard link discovery order CAN still vary shifting identity
+
+notIn -f$w/f0 $w/digs $w/sets | xargs -0 rm -fv # Clear any stale (digs|sets)/*
+
+xargs -n99 -0P$DJ<$w/f0 $digester -o$w/digs/\$p # Update /digs for new /f0
+
+nsets make -p$w/f0 -i$w/digs/\$p -o$w/sets/\$p  # Update /sets for new /digs
+nsets pair -v1 -p$w/f0 -s$w/sets/\$p >$w/doCmp  # List non0 isect pairs
+
+rm -rf $w/2cmp $w/cmps                          # Make more data directories
+mkdir -p $w/2cmp $w/cmps                   
+split -a3 -l5000 - $w/2cmp/ < $w/doCmp          # 5 kSet work amortizes execs ok
+( for i in $w/2cmp/*; do
+    o="$w/cmps/${i#$w/2cmp/}"
+    printf "nsets c -p$w/sets/\\\$p -i$i -o$o\0"
+done ) | ru xargs -0n1 -P${CJ:-$(nproc)} sh -c
+cat $w/cmps/* > $w/compared
+
+# Now e.g. `awk '$1>8' < $w/compared` gives a list for human inspection.  Or you
+# can apply my `conncomp` to do A~B & B~C => A~C clustering as in:
+#   awk '$1>8' <compared | cols -dTAB 4 5 |tr ' ' \\t | conncomp |colSort|sort
