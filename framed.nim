@@ -57,7 +57,7 @@ proc framed*(slice="", Seed=654321, fMin=64, win=61, mask=255u64,
         if outs.doIn(fMin, win, mask, vs, inp[parseSlice(slice, inp.len)]):
           erru "out of disk space\n"; return 1
       for f in outs: f.close            # Clean up
-    inp.close                           
+    inp.close
 
 when isMainModule: import cligen; dispatch framed, help={
   "slice": "fileSlice (float|%:frac; <0:tailRel) to do",
