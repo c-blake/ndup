@@ -134,6 +134,7 @@ proc compare*(inp, pat, outp: string; delim='\t', chop=0) =
 
 when isMainModule: import cligen; dispatchMulti(
   [nsets.make, help={
+    "paths" : "path to \\0-delim list of paths",
     "iPat"  : "$p input digest file pattern",
     "oPat"  : "$p output set file pattern",
     "skip"  : "skip SKIP initial ints",
@@ -151,7 +152,8 @@ when isMainModule: import cligen; dispatchMulti(
     "sPat"  : "$p input setFile pattern",
     "cmax"  : "collision/cluster size limit/filter",
     "delim" : "output pair delimiter",
-    "rDelim": "output row terminator"}],
+    "rDelim": "output row terminator",
+    "verb"  : "verbosity: 0..3 are meaningful"}],
   [compare, help={
     "inp"   : "file containing input path pairs",
     "pat"   : "$p pattern for setFile input paths",
