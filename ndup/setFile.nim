@@ -16,14 +16,13 @@ proc initSetFile*(path: string, size=0, num=5, den=6): SetFile {.inline.} =
 proc slots*(s: SetFile): int {.inline.} = s.size div HSz
 
 template BadIndex: untyped =
-  when declared(IndexDefect): IndexDefect
-  else: IndexError
+  when declared(IndexDefect): IndexDefect else: IndexError
 
 template boundsCheck(s, i) =
   when not defined(danger):
     if s.mem.isNil: raise newException(ValueError, "nil MemFile")
     if (let n = s.size div HSz; i >=% n):
-      raise newException(BadIndex, formatErrorIndexBound(i, n))
+      raise newException(BadIndex(), formatErrorIndexBound(i, n))
 
 proc `[]`*(s: SetFile, i: int): uint64 {.inline.} =
   boundsCheck(s, i)
