@@ -3,7 +3,7 @@
 
 const HSz = 8   #TODO Generalize to non-8-byte-sized hash codes.
 
-import std/[math, parseutils], memfiles as mf, cligen/osUt
+import std/[math, parseutils, hashes], memfiles as mf, cligen/osUt
 type SetFile* = MemFile
 
 proc rightSize(count: Natural, num=5, den=6): int {.inline.} =
@@ -40,14 +40,14 @@ proc `[]=`*(s: var SetFile, i: int, value: uint64) {.inline.} =
 proc depth(keyHash: uint64, mask: uint64, i: int): int {.inline.} =
   int((i.uint64 + mask + 1u64 - (keyHash and mask)) and mask)
 
-proc hash(key: uint64): uint64 = key    # Mostly to debug; import hashes later
-proc incl*(s: var SetFile, key: uint64) {.inline.} =
+proc hash(key: uint64): uint64 = hashes.hash(key).uint64 # (0u64, toOpenArray[char](cast[ptr UncheckedArray[char]](key.unsafeAddr),0,7))
+proc incl*(s: var SetFile, key: uint64): bool {.inline.} =
   let mask = uint64(s.slots - 1)
   var k = key
   var i = hash(k) and mask      # Robin-Hood LP makes small isects ~2X faster
   var d = 0                     # Basic idea is Avg Depth Minimization
   while s[i.int] != 0u64:
-    if s[i.int] == k: return                    # Found; Nothing to do
+    if s[i.int] == k: return true               # Found; Nothing to do
     let dX = depth(hash(s[i.int]), mask, i.int) # depth of eXisting
     if d > dX:                                  # Target deeper than existing
       swap k, s[i.int]                          # Swap & continue to find slot
@@ -84,7 +84,7 @@ proc make*(outp: string; n, Num, Den: int) =
     inc lno
     if parseBiggestUInt(decimal, num) != decimal.len:
       erru "stdin:",lno,": not an unsigned decimal: ",decimal,"\n"
-    s.incl cast[uint64](num)
+    discard s.incl(cast[uint64](num))
   s.close
 
 proc isect*(paths: seq[string]) =
