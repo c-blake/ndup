@@ -12,15 +12,16 @@ type D = uint64
 const DSz = D.sizeof    #TODO Generalize to !=8-byte-sized digest item slots
 
 import std/[tables, sets, os, times, strutils], std/memfiles as mf,
-       cligen/[posixUt, osUt, mslice], setFile
+       cligen/[posixUt, osUt, mslice], setFile, invidx
 
 proc make*(paths: string, iPat="", oPat="", skip=0, Skip=0, frac=0.0, Frac=0.0,
            merge=1, Num=5, Den=6, xclude = @[1.D], newer=false, verb=false) =
-  ## Build saved non-0 hash set files in `oPat` from digest files in `iPat`.
+  ## Build saved non-0 digest set files in `oPat` from digest files in `iPat`.
   if "$p" notin iPat: erru "`iPat` must use path $p\n"; return
   if "$p" notin oPat: erru "`oPat` must use path $p\n"; return
+  var rsCnt = 0
   for path in getDelim(paths, '\0'):
-    var inp: SetFile
+    var inp: MemFile
     let iPath = iPat % ["p", path]
     let oPath = oPat % ["p", path]
     try: createDir(parentDir(oPath))
@@ -32,67 +33,82 @@ proc make*(paths: string, iPat="", oPat="", skip=0, Skip=0, frac=0.0, Frac=0.0,
     var s = initSetFile(oPath, n div merge + 1, Num, Den)
     let nSkip0 = min(skip, int(frac * float(n)))
     let nSkip1 = min(Skip, int(Frac * float(n)))
+    var pop = 0
     for i in countup(nSkip0, n - nSkip1 - merge, merge):
-      var key = 1.D                 # Ensure hash code/keys are never zero
+      var key = 1.D                 # Ensure keys are never zero
       for j in 0 ..< merge:         # Do non-0 wraparound product of successive
         let xIpJ = cast[ptr uint](cast[int](inp.mem) +% DSz * (i + j))[]
         key *= (if xIpJ == 0.D: 1.D else: xIpJ)
       if key == 0.D: key = 1.D      # non-0 * non-0 can still == 0 on overflow
       if key notin xclude:          # xclude trims false positives from common..
-        s.incl key                  #..known-in-advance frames/block dig vals.
+        if not s.incl(key): inc pop #..known-in-advance frames/block dig vals.
     inp.close
-    if verb: echo oPath," ",s.doStats
+    let doRightSize = 2*pop*Den < Num*s.slots # Iter Wants Num/Den/2<ld<Num/Den
+    if doRightSize:                 # Windows cannot rename open files
+      inc rsCnt
+      var sRS = initSetFile(oPath&".tmp", pop, Num, Den)
+      for k in s: discard sRS.incl(k)
+      if verb: echo oPath," ",sRS.doStats
+      sRS.close
+    elif verb:
+      echo oPath," ",s.doStats
     s.close
+    if doRightSize:
+      moveFile oPath&".tmp", oPath  # An OS might cancel defunct IO with luck
+  if verb: stderr.write "right-sized ",rsCnt," sets\n"
 
-proc maybeAdd(s: var seq[uint16], x: uint16, cmax: int) =
-  if s.len < cmax and x notin s: s.add x    # Memory dense but SLOW for big cmax
+proc count(paths: string, sPat=""): (seq[string], int) =
+  for path in getDelim(paths,'\0'): # 0) Collect paths, estimate InvIdx size
+    result[0].add path
+    try: result[1].inc int(getFileSize(sPat % ["p", path]) div 8)
+    except: erru "problem sizing ",sPat % ["p", path],'\n'; raise
 
-proc pair*(paths: string, sPat="", cmax=100, delim='\t', rDelim='\n', verb=0) =
+proc pair*(paths: string, sPat="", cmax=0.0115, delim='\t', rDelim='\n', Num=5,
+           Den=6, verb=0) =
   ## Print pairs of set files in `paths` which share >=1 value.
-  #TODO Could pre-count paths & generalize to >2-byte file Ids.
   if paths.len == 0: erru "must provide valid path to paths\n"; return
   if "$p" notin sPat: erru "`sPat` must use path $p\n"; return
   let t0 = epochTime(); var t1, t2: typeof(t0)
-  var d2fNs = initTable[D, seq[uint16]](8 shl 20)
-  var name: seq[string] = @[ "" ]   # No fN==0 => 0 can => empty in packed set
-  for path in getDelim(paths,'\0'): # 1) Build an inverted index
-    let sPath = sPat % ["p",path]
+  let (name, nDig) = count(paths, sPat)
+  if name.len > 65534: quit $name.len & " is too many files",1 #TODO >2B fileIds
+  let nDEst = uint64(nDig.float * Num.float / Den.float)
+  let cmax  = int(cmax * name.len.float)
+  if verb > 0: erru "nFiles: ",name.len," nDigEstimated: ",nDEst," virt.mem: ",
+                    nDEst.invIdxSpace*DSz.uint64 shr 20," MiB\n"
+  var d2fNs = initInvIdx[D, uint16](nDEst)
+  for i in 0 ..< name.len:          # 1) Build an inverted index
     try:
-      var s  = initSetFile(sPath)
-      let fN = uint16(len(name))    # file Number (added to `name` post loop)
-      for e in s: d2fNs.mgetOrPut(e, @[]).maybeAdd fN, cmax
-      name.add path                 # Must .add *after* len(name) use above
+      var s = initSetFile(sPat % ["p", name[i]])
+      for e in s: d2fNs.add e, uint16(i + 1), cmax  # 1-origin file numbers
       s.close
-    except: erru "problem opening ",sPath,'\n'
-  if verb > 0: erru "nFiles: ",name.len - 1,"\n"
-  if verb > 0: erru "nH: ",d2fNs.len," in ",(t1=epochTime();t1-t0)," s\n"
-  var pairs = initHashSet[uint32]() # 2) Uniqify-implied pair comparisons
+    except: erru "problem opening ",sPat % ["p", name[i]],'\n'; raise
+  if verb > 0: erru "nDig: ",d2fNs.len," in ",(t1=epochTime();t1-t0)," s\n"
+  var cmps = initHashSet[uint32]()  # 2) Uniqify-implied pair comparisons
   var nC = 0
   for key, fNs in d2fNs:            # Accumulate any new pairs from fNs*fNs
-    if fNs.len > cmax: erru "IMPOSSIBLE\n"
-    elif fNs.len == cmax:           # Too wide a collision cluster
+    if fNs[].len == cmax:           # Too wide a collision cluster
       inc nC
-      if verb > 1: erru fNs.len," way collision for key: ",key,'\n'
-    elif fNs.len > 1:               # Need at least 2 to compare
+      if verb > 1: erru ">= ",fNs[].len," way collision for key: ",key,'\n'
+    elif fNs[].len > 1:             # Need at least 2 to compare
       inc nC
       if verb > 2:
         var str = "key " & $key
-        for fn in fNs: str.add ' '; str.add name[fn]
+        for fn in fNs[]: str.add ' '; str.add name[fn - 1]
         erru str, "\n"
-      for i in 0 ..< fNs.len:       # i<j => fNs[i]<fNs[j] by construction
-        for j in i+1 ..< fNs.len:   # So, below pair is always the same order.
-          if fNs[i] < fNs[j]:
-            pairs.incl((uint32(fNs[i]) shl 16) or uint32(fNs[j]))
-          elif fNs[i] > fNs[j]:     # Hrm j = i+1.. should already nix diag
-            pairs.incl((uint32(fNs[j]) shl 16) or uint32(fNs[i]))
-  if verb > 0: erru "nCollidingHashes: ",nC,'\n'
-  if verb > 0: erru pairs.len," unique pairs in ",(t2=epochTime(); t2-t1)," s\n"
-  for pair in pairs:                # 3) Emit pairs
-    let hi = int(pair shr 16)
-    let lo = int(pair and 0xFFFF'u32)
-    stdout.write name[hi], delim, name[lo], rDelim
+      for i in 0 ..< fNs[].len:     # i<j => fNs[i]<fNs[j] by construction
+        for j in i+1 ..< fNs[].len: # So, below pair is always the same order.
+          if fNs[][i] < fNs[][j]:
+            cmps.incl (fNs[][i].uint32 shl 16) or fNs[][j].uint32
+          elif fNs[][i] > fNs[][j]: # Hrm j = i+1.. should already nix diag
+            cmps.incl (fNs[][j].uint32 shl 16) or fNs[][i].uint32
+  if verb > 0: erru "nColliding: ",nC,'\n'
+  if verb > 0: erru cmps.len," unique cmps in ",(t2=epochTime(); t2-t1)," s\n"
+  for cmp in cmps:                  # 3) Emit pair cmp
+    let hi = int(cmp shr 16)
+    let lo = int(cmp and 0xFFFF'u32)
+    stdout.write name[hi - 1], delim, name[lo - 1], rDelim
 
-proc compare*(inp, pat, outp: string; delim='\t', chop=0) =
+proc compare*(inp, pat, outp: string; delim='\t') =
   ## Read path pairs on stdin & print comparison stats & paths.
   if "$p" notin pat: erru "`pat` must use path $p\n"; return
   var cache = initTable[string, SetFile](65536)
@@ -102,7 +118,6 @@ proc compare*(inp, pat, outp: string; delim='\t', chop=0) =
       let fPath = pat % ["p",path]
       try   : (let f = initSetFile(fPath); cache[path] = f; return f)
       except: erru "problem opening ",fPath,'\n'; raise
-  let chp = chop + 1                # Adjust for inclusive slice
   var fields: seq[string]
   var lno = 0
   let outf = syncio.open(outp, fmWrite)
@@ -129,7 +144,7 @@ proc compare*(inp, pat, outp: string; delim='\t', chop=0) =
         inc htBlen
         if e in htA: inc count
     if count > 0:
-      outf.write count,T,htAlen,T,htBlen,T,pA[0..^chp],T,pB[0..^chp],'\n'
+      outf.write count, T, htAlen, T, htBlen, T, pA, T, pB, '\n'
   outf.close
 
 when isMainModule: import cligen; dispatchMulti(
@@ -150,13 +165,14 @@ when isMainModule: import cligen; dispatchMulti(
   [pair, help={
     "paths" : "path to \\0-delim list of set file inputs",
     "sPat"  : "$p input setFile pattern",
-    "cmax"  : "collision/cluster size limit/filter",
+    "cmax"  : "cluster size limit/filter (frac of nPath)",
     "delim" : "output pair delimiter",
     "rDelim": "output row terminator",
+    "Num"   : "numerator in max table load fraction",
+    "Den"   : "denom in max table load fraction",
     "verb"  : "verbosity: 0..3 are meaningful"}],
   [compare, help={
     "inp"   : "file containing input path pairs",
     "pat"   : "$p pattern for setFile input paths",
     "outp"  : "file for output comparison stats",
-    "delim" : "in-line delimiter between input path pairs",
-    "chop"  : "chop N chars off path ends before printing"}])
+    "delim" : "in-line delimiter between input path pairs"}])
