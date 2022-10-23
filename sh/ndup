@@ -40,7 +40,7 @@ done ) | ru xargs -0n1 -P${CJ:-$(nproc)} sh -c
 cat $w/cmps/* > $w/compared
 
 # Now e.g. `awk '$1>8' < $w/compared` gives a list for human inspection.  Or you
-# can apply my `conncomp` to do A~B & B~C => A~C clustering as in:
+# can apply `grAlg/util/conncomp` to do A~B & B~C => A~C clustering as in:
 #   awk '$1>8' < compared | cols -dTAB 4 5 |tr ' ' \\t | conncomp | colSort |
 #     awk -F TAB '{printf("%d:",NF);print}' | sort -n | less
 # where TAB is Ctrl-V TABKEY - the hard tab character.
