@@ -1,4 +1,5 @@
 import std/[hashes, tables, algorithm, os, math]
+when not declared(stderr): import std/syncio
 type
   InvIdx*[Key,Id] = object ## Inverted Index tailored for ndup.  Specifically, a
     ## space-optimized `Table` from "mostly but not exactly" unique keys (think

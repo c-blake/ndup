@@ -1,5 +1,6 @@
 import std/[random, bitops, strutils],
        cligen/[mfile, mslice, strUt, osUt, fileUt, statx]
+when not declared(File): import std/syncio
 proc hash(ms: MSlice): uint64 = ms.toOpenArrayChar.hashCB
 
 var sBox: array[256, uint64]            # Rand Substitution-box for "Buzhash"

@@ -4,6 +4,7 @@
 const HSz = 8   #TODO Generalize to non-8-byte-sized hash codes.
 
 import std/[math, parseutils, hashes], memfiles as mf, cligen/osUt
+when not declared(fmRead): import std/syncio
 type SetFile* = MemFile
 
 proc rightSize(count: Natural, num=5, den=6): int {.inline.} =

@@ -13,6 +13,7 @@ const DSz = D.sizeof    #TODO Generalize to !=8-byte-sized digest item slots
 
 import std/[tables, sets, os, times, strutils], std/memfiles as mf,
        cligen/[posixUt, osUt, mslice], setFile, invidx
+when not declared(stdout): import std/[syncio, formatfloat]
 
 proc make*(paths: string, iPat="", oPat="", skip=0, Skip=0, frac=0.0, Frac=0.0,
            merge=1, Num=5, Den=6, xclude = @[1.D], newer=false, verb=false) =
