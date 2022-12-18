@@ -25,11 +25,11 @@ proc make*(paths: string, iPat="", oPat="", skip=0, Skip=0, frac=0.0, Frac=0.0,
     var inp: MemFile
     let iPath = iPat % ["p", path]
     let oPath = oPat % ["p", path]
-    try: createDir(parentDir(oPath))
-    except: erru "cannot create output directory for ",path,'\n'; continue
+    try      : createDir(parentDir(oPath))
+    except Ce: erru "cannot create output directory for ",path,'\n'; continue
     if newer and getLastModTimeNs(oPath) > getLastModTimeNs(iPath): continue
-    try: inp = mf.open(iPath)
-    except: erru "problem with ",iPath,'\n'; continue
+    try      : inp = mf.open(iPath)
+    except Ce: erru "problem with ",iPath,'\n'; continue
     let n = inp.size div DSz
     var s = initSetFile(oPath, n div merge + 1, Num, Den)
     let nSkip0 = min(skip, int(frac * float(n)))
@@ -61,8 +61,8 @@ proc make*(paths: string, iPat="", oPat="", skip=0, Skip=0, frac=0.0, Frac=0.0,
 proc count(paths: string, sPat=""): (seq[string], int) =
   for path in getDelim(paths,'\0'): # 0) Collect paths, estimate InvIdx size
     result[0].add path
-    try: result[1].inc int(getFileSize(sPat % ["p", path]) div 8)
-    except: erru "problem sizing ",sPat % ["p", path],'\n'; raise
+    try      : result[1].inc int(getFileSize(sPat % ["p", path]) div 8)
+    except Ce: erru "problem sizing ",sPat % ["p", path],'\n'; raise
 
 proc pair*(paths: string, sPat="", cmax=0.0115, delim='\t', rDelim='\n', Num=5,
            Den=6, verb=0) =
@@ -82,7 +82,7 @@ proc pair*(paths: string, sPat="", cmax=0.0115, delim='\t', rDelim='\n', Num=5,
       var s = initSetFile(sPat % ["p", name[i]])
       for e in s: d2fNs.add e, uint16(i + 1), cmax  # 1-origin file numbers
       s.close
-    except: erru "problem opening ",sPat % ["p", name[i]],'\n'; raise
+    except Ce: erru "problem opening ",sPat % ["p", name[i]],'\n'; raise
   if verb > 0: erru "nDig: ",d2fNs.len," in ",(t1=epochTime();t1-t0)," s\n"
   var cmps = initHashSet[uint32]()  # 2) Uniqify-implied pair comparisons
   var nC = 0
@@ -114,11 +114,11 @@ proc compare*(inp, pat, outp: string; delim='\t') =
   if "$p" notin pat: erru "`pat` must use path $p\n"; return
   var cache = initTable[string, SetFile](65536)
   proc file2set(path: string): SetFile =
-    try: return cache[path]
-    except:
+    try      : return cache[path]
+    except Ce:
       let fPath = pat % ["p",path]
-      try   : (let f = initSetFile(fPath); cache[path] = f; return f)
-      except: erru "problem opening ",fPath,'\n'; raise
+      try      : (let f = initSetFile(fPath); cache[path] = f; return f)
+      except Ce: erru "problem opening ",fPath,'\n'; raise
   var fields: seq[string]
   var lno = 0
   let outf = syncio.open(outp, fmWrite)

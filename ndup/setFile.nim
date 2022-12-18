@@ -118,8 +118,8 @@ proc stats*(nPaths: seq[string]) =
   ## Print statistics for listed set files
   var s: SetFile
   for path in nPaths:
-    try: s = initSetFile(path)
-    except: erru "problem opening ", path, "\n"; raise
+    try      : s = initSetFile(path)
+    except Ce: erru "problem opening ", path, "\n"; raise
     echo path, " ", s.doStats
     s.close
 
@@ -127,8 +127,8 @@ proc list*(nPaths: seq[string]) =
   ## List concise membership of set files in `nPaths`
   var s: SetFile
   for path in nPaths:
-    try: s = initSetFile(path)
-    except: erru "problem opening ", path, "\n"; raise
+    try      : s = initSetFile(path)
+    except Ce: erru "problem opening ", path, "\n"; raise
     for e in s: echo e
     s.close
 
@@ -136,8 +136,8 @@ proc print*(nPaths: seq[string]) =
   ## Print verbose textual table representation for listed set files
   var s: SetFile
   for path in nPaths:
-    try: s = initSetFile(path)
-    except: erru "problem opening ", path, "\n"; raise
+    try      : s = initSetFile(path)
+    except Ce: erru "problem opening ", path, "\n"; raise
     echo "TABLE: ", path, "  ", s.doStats, "\n", s
     s.close
 
