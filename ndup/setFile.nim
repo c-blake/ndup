@@ -40,7 +40,8 @@ proc `[]=`*(s: var SetFile, i: int, value: uint64) {.inline.} =
 proc depth(keyHash: uint64, mask: uint64, i: int): int {.inline.} =
   int((i.uint64 + mask + 1u64 - (keyHash and mask)) and mask)
 
-proc hash(key: uint64): uint64 = hashes.hash(key).uint64 # (0u64, toOpenArray[char](cast[ptr UncheckedArray[char]](key.unsafeAddr),0,7))
+proc hash(key: uint64): uint64 = hashes.hash(key).uint64
+# (0u64, toOpenArray[char](cast[ptr UncheckedArray[char]](key.unsafeAddr),0,7))
 proc incl*(s: var SetFile, key: uint64): bool {.inline.} =
   let mask = uint64(s.slots - 1)
   var k = key
