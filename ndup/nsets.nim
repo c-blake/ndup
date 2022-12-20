@@ -1,12 +1,12 @@
 ## A file collection, a way to digest, and desire to compare motivate this code.
 ## E.g., one can segment a file into frames based on a rolling hash & then stack
 ## goodHash(frame)s to form a digest like rsync, saved as an .NL file.  Compares
-## need costly ops like set intersect only for pairs of digests SHARING AN ITEM.
-## Spending space-time for an inverted index {item -> seq[fileNosWithIt]} trims
-## work from O(nFiles^2) scans to O(nSeqs\*avgSeqLen^2) as well as saving many
-## unneeded compares for any wildly common digest values.  Basic flow is `make`
-## to maintain hash set files based on externally maintained digests, `pair` to
-## emit pairs & `comp` over pair lists to score digest|SetFile similarity.
+## need costly ops like set intersect only for pairs of digests SHARING HASHES.
+## Spending space-time for a *{hash -> seq[fileNosWithIt]}* inverted index trims
+## work from *O(nFiles^2)* scans to *O(nSeqs\*avgSeqLen^2)* as well as eliding
+## compares for any wildly common digest values.  Basic flow: external digest
+## update, `make` to update hash set files, `pair` to emit pairs & `comp` over
+## pair lists to score digest|SetFile similarity.  See, e.g. `sh/ndup`.
 
 type D = uint64
 const DSz = D.sizeof    #TODO Generalize to !=8-byte-sized digest item slots
@@ -17,7 +17,7 @@ when not declared(stdout): import std/[syncio, formatfloat]
 
 proc make*(paths: string, iPat="", oPat="", skip=0, Skip=0, frac=0.0, Frac=0.0,
            merge=1, Num=5, Den=6, xclude = @[1.D], newer=false, verb=false) =
-  ## Build saved non-0 digest set files in `oPat` from digest files in `iPat`.
+  ## Make saved non0 digest set files in `oPat` from digest files in `iPat`.
   if "$p" notin iPat: erru "`iPat` must use path $p\n"; return
   if "$p" notin oPat: erru "`oPat` must use path $p\n"; return
   var rsCnt = 0
@@ -109,8 +109,8 @@ proc pair*(paths: string, sPat="", cmax=0.0115, delim='\t', rDelim='\n', Num=5,
     let lo = int(cmp and 0xFFFF'u32)
     stdout.write name[hi - 1], delim, name[lo - 1], rDelim
 
-proc compare*(inp, pat, outp: string; delim='\t') =
-  ## Read path pairs on stdin & print comparison stats & paths.
+proc comp*(inp, pat, outp: string; delim='\t') =
+  ## Compare path pairs on stdin, printing stats & paths.
   if "$p" notin pat: erru "`pat` must use path $p\n"; return
   var cache = initTable[string, SetFile](65536)
   proc file2set(path: string): SetFile =
@@ -172,7 +172,7 @@ when isMainModule: import cligen; dispatchMulti(
     "Num"   : "numerator in max table load fraction",
     "Den"   : "denom in max table load fraction",
     "verb"  : "verbosity: 0..3 are meaningful"}],
-  [compare, help={
+  [comp, help={
     "inp"   : "file containing input path pairs",
     "pat"   : "$p pattern for setFile input paths",
     "outp"  : "file for output comparison stats",
