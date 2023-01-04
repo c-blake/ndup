@@ -1,6 +1,7 @@
+when not declared(File): import std/syncio
+include cligen/unsafeAddr
 import std/[random, bitops, strutils],
        cligen/[mfile, mslice, strUt, osUt, fileUt, statx]
-when not declared(File): import std/syncio
 proc hash(ms: MSlice): uint64 = ms.toOpenArrayChar.hashCB
 
 var sBox: array[256, uint64]            # Rand Substitution-box for "Buzhash"
@@ -24,11 +25,11 @@ proc doIn*(outs: seq[File], fMin=0, w=61, mask=0u64, vals: seq[uint64],
     for k, val in vals:                         # Check rh against each val
       if i - i0[k] >= fMin and rhMask == val:   #  ..if block size >= fMin
         let h = hash(inp[i0[k] ..< i])          # Append mixier hash to k-th out
-        if outs[k].uriteBuffer(h.addr, h.sizeof) < h.sizeof: return true
+        if outs[k].uriteBuffer(h.unsafeAddr, h.sizeof) < h.sizeof: return true
         i0[k] = i                               # Record new block start @i
   for k, val in vals:                           # Hash last_i0..EOF
     let h = hash(inp[i0[k] ..< inp.len])        # Append mixier hash to k-th out
-    if outs[k].uriteBuffer(h.addr, h.sizeof) < h.sizeof: return true
+    if outs[k].uriteBuffer(h.unsafeAddr, h.sizeof) < h.sizeof: return true
 
 proc framed*(slice="", Seed=654321, fMin=64, win=61, mask=255u64,
              vals: seq[int] = @[], oPat="/tmp/d/$p", paths: seq[string]): int =
