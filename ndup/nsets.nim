@@ -13,7 +13,11 @@ const DSz = D.sizeof    #TODO Generalize to !=8-byte-sized digest item slots
 
 import std/[tables, sets, os, times, strutils], std/memfiles as mf,
        cligen/[posixUt, osUt, mslice], setFile, invidx
-when not declared(stdout): import std/[syncio, formatfloat]
+when declared(stdout):
+  template stdOpen(x: varargs[untyped]): untyped = system.open(x)
+else:
+  import std/[syncio, formatfloat]; export syncio
+  template stdOpen(x: varargs[untyped]): untyped = syncio.open(x)
 
 proc make*(paths: string, iPat="", oPat="", skip=0, Skip=0, frac=0.0, Frac=0.0,
            merge=1, Num=5, Den=6, xclude = @[1.D], newer=false, verb=false) =
@@ -121,7 +125,7 @@ proc comp*(inp, pat, outp: string; delim='\t') =
       except Ce: erru "problem opening ",fPath,'\n'; raise
   var fields: seq[string]
   var lno = 0
-  let outf = syncio.open(outp, fmWrite)
+  let outf = stdOpen(outp, fmWrite)
   let T = "\t"
   for line in lines(inp):
     inc lno
