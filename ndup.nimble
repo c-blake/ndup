@@ -6,4 +6,4 @@ license     = "MIT/ISC"
 bin         = @[ "framed", "ndup/setFile", "ndup/nsets" ]
 
 # Dependencies
-requires "nim >= 1.6.0", "cligen >= 1.5.28", "bu >= 0.2.0"
+requires "nim >= 1.6.0", "cligen >= 1.6.0", "bu >= 0.7.7"
