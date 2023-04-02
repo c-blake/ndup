@@ -3,7 +3,7 @@
 
 const HSz = 8   #TODO Generalize to non-8-byte-sized hash codes.
 
-import std/[math, parseutils, hashes], memfiles as mf, cligen/osUt
+import std/[math, parseutils, hashes, strformat], memfiles as mf, cligen/osUt
 when not declared(fmRead): import std/syncio
 type SetFile* = MemFile
 
@@ -102,7 +102,11 @@ proc isect*(paths: seq[string]) =
         break
     if inAll: echo e
 
-proc doStats*(s: SetFile): tuple[load:float,lg:int,mx:int,avg:float,rms:float] =
+type SStats* = tuple[load: float; lg, mx: int; avg, rms: float]
+proc `$`*(s: SStats): string =
+  &"load: {s.load:.3f} lg: {s.lg} mx: {s.mx} avg: {s.avg:.2f} rms: {s.rms:.2f}"
+
+proc doStats*(s: SetFile): SStats =
   var mx, ssq, tot, n: int
   let mask = uint64(s.slots - 1)
   for i in 0u64..mask:
