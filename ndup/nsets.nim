@@ -152,7 +152,7 @@ proc comp*(inp, pat, outp: string; delim='\t') =
       outf.write count, T, htAlen, T, htBlen, T, pA, T, pB, '\n'
   outf.close
 
-when isMainModule: import cligen; dispatchMulti(
+when isMainModule: import cligen; include cligen/mergeCfgEnv; dispatchMulti(
   [nsets.make, help={
     "paths" : "path to \\0-delim list of paths",
     "iPat"  : "$p input digest file pattern",
