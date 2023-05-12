@@ -1,5 +1,5 @@
 # Package
-version     = "0.1.1"
+version     = "0.1.2"
 author      = "Charles Blake"
 description = "Near-Duplicate File Detection"
 license     = "MIT/ISC"
