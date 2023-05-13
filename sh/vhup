@@ -1,0 +1,40 @@
+#!/bin/sh
+# Need: nsets ffmpeg pHash GNU find-utils procs bu/[stripe lncs tmpls mk1 notIn]
+# Separate from `vdup` since `ffmpeg|pHash` is slow & so it's nice to have such
+# pre-done overnight/etc for a faster on-demand `vdup` "query".
+
+[ "$1" = "-h" ]&&{ echo "Maintains \$vr for subdirs \$1 .. Cron job?";exit 1;}
+[ -r .vdup.sh ] && . ./.vdup.sh # ALLOW USER TO OPTIONALLY OVERRIDE BELOW VARS
+: ${vr:=".v"}   # TopLvl meta-data dir, profitably on fast media via var|symLn
+: ${d:="$vr/dig.NL"}    # Digest File Tree - expensive to compute
+: ${s:="$vr/set.NL"}    # Set File Tree - cheap to compute, but easy to cache
+: ${dl:="$vr/DLOG"}     # Logs of file digesting activity; Shows entry into sys
+: ${II:="$vr/IgnI"}     # Case-insensitive ignore/resolved grep pattern file
+: ${I:="$vr/Ign"}       # Case-sensitive ignore/resolved grep pattern file
+: ${p0:="$vr/path0"}    # Paths with NUL terminators
+: ${ff_args:="-vf scale=32:32,format=gray -c:v pgm -f rawvideo"}
+: ${ff:="ffmpeg < /dev/null -i %i $ff_args - 2> /dev/null"}
+: ${hv:="pHash"}        # This & above define vid hash; 32 & pHash 7|8 work ok
+: ${vh:="[ -e %o ] || { mkdir -p %o &&rmdir %o; }; $ff | $hv > %o || rm -f %o"}
+: ${run:="sh -x"}       # PS4='+$EPOCHREALTIME ' in call env, stripe -b 4, ..
+# $HOME/.config/nsets | NSETS_MAKE="-s2100 -S900 -f.20 -F.20" # clip intro/outro
+
+[ -e "$dl" ] || mkdir -p "$dl"          # Ensure needed dirs & files exist
+exec < /dev/null > "$dl/`date +%Y%m%d:%H%M%S`" 2>&1
+[ -e "$II" ] || touch "$II"
+[ -e "$I"  ] || touch "$I"
+[ -e "$d"  ] || mkdir -p "$d"
+export CLIGEN=/dev/null PROCS_CONFIG=/dev/null
+procs find -f 'bin/mk1' -aWait          # Wait for extant; Cron/manual Launches
+
+lncs -m512 -r0 -t0 -n1 -e '' $* |       # Paths of first hard links filtered out
+  grep -ziv -f "$II" | grep -zv -f "$I" > "$p0" #..case-Insensitive&sensitive-ly
+                                       
+( notIn -f "$p0" -p\$1 "$d" "$s" |      # Clear stale dig/set files&empty dirs
+    xargs -0 rm -fdv ) 2>&1 | grep -v ': Directory not empty$'
+( cd "$d"                               # Nix any old/empty files|dirs
+  find -size 0 -type f -print0 | xargs -0 rm -fv )
+
+tmpls -n '\0' -t '\0' %s "$d/%s" < "$p0" |      # Update digests
+    mk1 -n '\0' "$vh" | eval $run
+nsets make -nvp "$p0" -i "$d/\$p" -o "$s/\$p"   # Update sets

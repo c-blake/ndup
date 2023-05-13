@@ -1,0 +1,74 @@
+#!/bin/sh
+#Need: nsets nio lc bu/[newest stripe cols colSort ffprobe align] grAlg/conncomp
+[ -r .vdup.sh ] && . ./.vdup.sh # ALLOW USER TO OPTIONALLY OVERRIDE BELOW VARS
+: ${ndv:=".v"}  # Top-Lvl meta-data dir, profitably on fast media via var|symLn
+: ${d:="$ndv/dig.NL"}       # Digest File Tree - expensive to compute
+: ${s:="$ndv/set.NL"}       # Set File Tree - cheap to make, but easy to cache
+: ${p0:="$ndv/path0"}       # Paths with NUL terminators
+: ${nd:="$ndv/ndups"}       # directory for /[neededPairs pair/* isect/* ISect]
+: ${kD:="$ndv/KnownDups"}   # With-# comments grep pattern file of resolved dups
+: ${kd:="$ndv/KnownDupP"}   # Usable for grep -f pattern file of known/resolved
+: ${sU:="$ndv/DupSpace"}    # Per cluster space usage report file
+: ${rvt:="/dev/shm/vdup"}   # Report Very Temporary files
+: ${LCF:='%s %M %f'}        # User might want %m, %V or something instead
+: ${ALN:='+ + + + + + -'}   # Aligner depends on num cols from LCF
+: ${tf:="+%Y/%m/%d-%H:%M:%S.%N"} # Time Format for log messages of this script
+
+echo 1>&2 "`date "$tf"`: FileMap,FrameHash; Log@ \${dl:-$ndv/DLOG}"
+vhup "$@"                                       # Maintain $d & $s
+T="$(printf \\t)"
+[ -e "$kD" ] || touch "$kD"
+newestS=$(newest -tm -r0 "$s/")                 # Find newest set file
+if ! [ -s "$nd/neededPairs" -a "$nd/neededPairs" -nt "$newestS" ]; then
+  mkdir -pm0700 "$nd/pair" "$nd/isect"          # Ensure some data dirs
+  ni='
+'                                               # n)ewline-i)ndent for stFmt
+  stFmt="  File: %n${ni}Modify: %y${ni}Change: %z${ni}Birth:  %w"
+  stat 1>&2 -c "$stFmt" "$newestS"
+  echo 1>&2 "newer than"
+  stat 1>&2 -c "$stFmt" "$nd/pair"
+  echo 1>&2 "`date "$tf"`: REBUILDING $nd/pair" # Generate necessary pairs jobs
+  nsets pair -p "$p0" -s "$s/\$p" -N4 -D7 -v1 >"$nd/neededPairs" #XXX -dX/-r ''
+  rm -f "$nd/pair"/* "$nd/isect"/*
+  split -a 3 -l 15000 - "$nd/pair"/ < "$nd/neededPairs"          #XXX -t '\0'
+fi
+
+echo 1>&2 "`date "$tf"`: MAYBE INTERSECTING SETS"
+( for pr in `cd "$nd/pair"; echo *`; do         # Intersect frame hash sets
+    if [ "$nd/isect/$pr" -nt "$nd/pair/$pr" ]; then continue; fi #XXX comp -dX
+    echo exec nsets comp -p "$s/\\\$p" -i "$nd/pair/$pr" -o "$nd/isect/$pr"
+  done ) | stripe $(ncpu)   #^^Quoting for spacey $ndv XXX TODO
+cat "$nd/isect"/* | sort -n > "$nd/ISect"
+
+echo 1>&2 "`date "$tf"`: MAKING UNRESOLVED REPORT"
+cz() {          # Cluster siZe: Emit total size in KiB before repeating names
+  while read a; do                      # Needs no newlines or $T in paths
+    printf "%s" "$a" | tr \\t\\n \\0\\0 | xargs -0 stat -c%b -- | #XXX delims
+      awk '{s+=$1} END{printf "%d",s/2}'
+    printf "\t%s\n" "$a"                # Above has no \\n
+  done; }
+
+vidMeta() {     # Summarize video metadata; Frames Width x Height FPS
+  printf "%s${T}" $(nio stat -c%r .NL < "$d/$1"); ffprobe "$1" 2>&1 |
+  sed -En 's/.*, ([0-9]+x[0-9]+).*, ([0-9]+[.]*[0-9]*) fps, .*/\1 \2/p'; }
+
+sim() {         # Similarity score; Here just % ~identical frames
+  grep "$1" < "$nd/ISect" | grep -vf "$kd" | tail -n1 |
+    awk -F"$T" '{ printf("%.2f%%", 100*$1 / ($2 < $3 ? $2 : $3)) }'; }
+
+grep -v '^#\|^$' "$kD" > "$kd"          # Pre-proc $kD -> $kd
+awk '$1>60' < $nd/ISect | cols -d"$T" -s"$T" 4 5 | # Connected Component filter
+  grep -vf "$kd"|conncomp|cz|sort -n|tee "$sU"|cols -d"$T" -s"$T" -c 1|colSort|
+  ( R=0         #^cluster, sort by sz (saving), nix size, alphabetize in-cluster
+    while read -r ln; do                # Read a cluster
+      [ $R -gt 0 ] && echo @@@@@@@      # Maybe separate
+      echo "$ln" | tr \\t \\n | (N=0; while read f; do          #XXX delims
+          [ -z "$f" ] && continue       # It would be nicer to use only
+          [ -e "$f" ] || continue       #..bounded parallelism below.
+          echo $(vidMeta "$f") $(sim "$f") $(lc -f "$LCF" "$f") > "$rvt.$N" &
+          N=$((N+1))                    # Do per-file vid/file metadata report
+        done; wait                      # Also sort & per-cluster align that
+        cat "$rvt".*; rm "$rvt".*) | sort -gk4 | align -pd" $T" $ALN
+      R=$((R+1))
+    done ) | sed 's/  *$//'
+echo 1>&2 "`date "$tf"`: DONE"
