@@ -57,12 +57,11 @@ Unlike a fully automated context, near duplicate systems may be able to have
 framings*.  This can mitigate "unlucky" framing.  Concretely, you can pick
 different matching values or different seeds for the BuzHash Sbox to get
 entirely independent framings.  Then you can consider two or more files (with
-*the same* framing rules) according to N samples (5..12 work ok).  Only files
-deemed "related" according to some "vote" among the samples are made actually
-related.  This idea is more salient to the near duplicate use-case where an
-end-user may want to tune false positive rates.
+*the same* framing rules) according to N samples (5..12 work ok).  This idea is
+more salient to the near duplicate use-case where an end-user may want to tune
+false positive rates.
 
-Of course, one can also have *un*lucky framing and also automate multiple trials
+Of course, one can also get *UN*lucky framing & want to automate multiple trials
 with voting, say a threshold of 4/5 or something.  Depending upon thresholds,
 this seems to boost sensitivity (fewer false negatives) without much adverse
 false positive creation. {TODO: I automated this in a C version, and almost all
