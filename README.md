@@ -55,7 +55,7 @@ Unlike a fully automated context, near duplicate systems may be able to have
 "iterated by a human in the loop" deployment.  One thing I came up with myself
 (but may have prior work somewhere) is *multiple statistically independent
 framings*.  This can mitigate "unlucky" framing.  Concretely, you can pick
-different matching values or different seeds for the BuzHash Sbox to get
+different matching values (or different seeds for BuzHash Sboxes) to get
 entirely independent framings.  Then you can consider two or more files (with
 *the same* framing rules) according to N samples (5..12 work ok).  This idea is
 more salient to the near duplicate use-case where an end-user may want to tune
