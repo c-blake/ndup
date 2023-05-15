@@ -80,13 +80,13 @@ patterns like '^Obsoletes: NUMBERS', cross-refs, some standards showing up as
 drafts earlier all afford defining results which "should" be found by "sensitive
 enough" near duplicate detectors (false negative rates).
 
-Meanwhile, in a weak sense, the entire set notionally relates "somehow" (being
-about the same "super topic").  This topical similarity affords studying false
-discovery rate controls from "tight similarity" all the way to "very loose".
-The 9200 document set size is small enough to enable rapid idea iteration yet
-also large enough to be relevant for performance on larger data sets.  E.g.
+Meanwhile, in a weak sense, the entire document set notionally relates "somehow"
+(being about the same "super topic").  This topical similarity affords studying
+false discovery rate controls from "tight similarity" all the way to "very
+loose".  The 9200 document size is small enough to enable rapid idea iteration
+yet also large enough to be relevant for performance on larger data sets.  E.g.
 9200^2/2=43e6 naive file comparisons which show off the power of the inverted
-index optimization which is over 500X less work with default parameters.
+index optimization (over 500X less work with default parameters).
 
 As mentioned in "Choices" and "Core Idea" above, evaluation is hard since there
 is neither a fully objective answer and there may be several axes of degrees of
