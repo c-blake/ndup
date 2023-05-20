@@ -23,19 +23,20 @@ mkdir -p "$w"                                   # Make a working data directory
 lncs -r0 -t0 -.n1 -e '' | sort -z >$w/f0        # 1st hard link->/f0 (~ files.0)
 #NOTE: Dir traversal/hard link discovery order CAN still vary shifting identity
 
-notIn -f$w/f0 $w/digs $w/sets | xargs -0 rm -fv # Clear any stale (digs|sets)/*
+( notIn -f$w/f0 -p\$1.NL $w/digs $w/sets |      # Clear any stale (digs|sets)/*
+    xargs -0 rm -fdv ) 2>&1 | grep -v ': Directory not empty$'
 
-xargs -n99 -0P$DJ<$w/f0 $digester -o$w/digs/\$p # Update /digs for new /f0
+xargs -n99 -0P$DJ<$w/f0 $digester -o$w/digs/\$p.NL   # Update /digs for new /f0
 
-nsets make -p$w/f0 -i$w/digs/\$p -o$w/sets/\$p  # Update /sets for new /digs
-nsets pair -v1 -p$w/f0 -s$w/sets/\$p >$w/doCmp  # List non0 isect pairs
+nsets make -p$w/f0 -i$w/digs/\$p.NL -o$w/sets/\$p.NL # Renew /sets for new /digs
+nsets pair -v1 -p$w/f0 -s$w/sets/\$p.NL >$w/doCmp    # List non0 isect pairs
 
 rm -rf $w/2cmp $w/cmps                          # Make more data directories
 mkdir -p $w/2cmp $w/cmps                   
 split -a3 -l5000 - $w/2cmp/ < $w/doCmp          # 5 kSet work amortizes execs ok
 ( for i in $w/2cmp/*; do
     o="$w/cmps/${i#$w/2cmp/}"
-    printf "nsets c -p$w/sets/\\\$p -i$i -o$o\0"
+    printf "nsets c -p$w/sets/\\\$p.NL -i$i -o$o\0"
 done ) | ru xargs -0n1 -P${CJ:-$(nproc)} sh -c
 cat $w/cmps/* > $w/compared
 
