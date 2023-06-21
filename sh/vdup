@@ -22,7 +22,7 @@ newestS=$(newest -tm -r0 "$s/")                 # Find newest set file
 if ! [ -s "$nd/neededPairs" -a "$nd/neededPairs" -nt "$newestS" ]; then
   mkdir -pm0700 "$nd/pair" "$nd/isect"          # Ensure some data dirs
   ni='
-'                                               # n)ewline-i)ndent for stFmt
+    '                                           # n)ewline-i)ndent for stFmt
   stFmt="  File: %n${ni}Modify: %y${ni}Change: %z${ni}Birth:  %w"
   stat 1>&2 -c "$stFmt" "$newestS"
   echo 1>&2 "newer than"
