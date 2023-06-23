@@ -2,8 +2,8 @@ when not declared(File): import std/[syncio] # Compile w/fast-math for dot prods
 import std/[os,strutils,terminal, posix, strscans, math, algorithm], cligen/osUt
 
 if stdin.isatty:quit """Square Gray Frame Digester filter after Zauner2010. Eg.:
-  ffmpeg -i X -vf scale=32:32,format=gray -c:v pgm -f rawvideo - | pHash > Y
-saves frame hashes of video file `X` to nio.NL file `Y`.""", 1
+  ffmpeg -i X -vf scale=32:32,format=gray -c:v pgm -f rawvideo - | pHash > Y.NL
+saves 64-bit frame hashes of video file `X` to nio file `Y.NL`.""", 1
 
 # 7 seems to match best on 5..8 for 32x32 frames.  www.phash.org impls more.
 let m = if paramCount() > 0: 1.paramStr.parseInt else: 7 # Coskun2004 originally
