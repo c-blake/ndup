@@ -53,10 +53,9 @@ proc make*(paths: string, iPat="", oPat="", skip=0, Skip=0, frac=0.0, Frac=0.0,
       inc rsCnt
       var sRS = initSetFile(oPath&".tmp", pop, Num, Den)
       for k in s: discard sRS.incl(k)
-      if verb: echo oPath," ",sRS.doStats
+      if verb: echo sRS.doStats," ",oPath
       sRS.close
-    elif verb:
-      echo oPath," ",s.doStats
+    elif verb: echo s.doStats," ",oPath
     s.close
     if doRightSize:
       moveFile oPath&".tmp", oPath  # An OS might cancel defunct IO with luck

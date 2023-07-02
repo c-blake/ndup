@@ -104,7 +104,7 @@ proc isect*(paths: seq[string]) =
 
 type SStats* = tuple[load: float; lg, mx: int; avg, rms: float]
 proc `$`*(s: SStats): string =
-  &"load: {s.load:.3f} lg: {s.lg} mx: {s.mx} avg: {s.avg:.2f} rms: {s.rms:.2f}"
+  &"load: {s.load:.3f} lg: {s.lg:2} mx: {s.mx:2} avg: {s.avg:.2f} rms: {s.rms:.2f}"
 
 proc doStats*(s: SetFile): SStats =
   var mx, ssq, tot, n: int
@@ -125,7 +125,7 @@ proc stats*(nPaths: seq[string]) =
   for path in nPaths:
     try      : s = initSetFile(path)
     except Ce: erru "problem opening ", path, "\n"; raise
-    echo path, " ", s.doStats
+    echo s.doStats, " ", path
     s.close
 
 proc list*(nPaths: seq[string]) =
@@ -143,7 +143,7 @@ proc print*(nPaths: seq[string]) =
   for path in nPaths:
     try      : s = initSetFile(path)
     except Ce: erru "problem opening ", path, "\n"; raise
-    echo "TABLE: ", path, "  ", s.doStats, "\n", s
+    echo "TABLE: ", s.doStats, "  ", path, "\n", s
     s.close
 
 when isMainModule:
