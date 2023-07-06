@@ -50,7 +50,7 @@ cz() {          # Cluster siZe: Emit total size in KiB before repeating names
 
 vidMeta() {     # Summarize video metadata; Frames Width x Height FPS
   printf "%s${T}" $(nio stat -c%r .NL < "$d/$1"); ffprobe "$1" 2>&1 |
-  sed -En 's/.*, ([0-9]+x[0-9]+).*, ([0-9]+[.]*[0-9]*) fps, .*/\1 \2/p'; }
+  sed -En 's/.*, ([0-9]+x[0-9]+).*, ([0-9]+[.]*[0-9]*) (fps|tbr), .*/\1 \2/p'; }
 
 sim() {         # Similarity score; Here just % ~identical frames
   grep "$1" < "$nd/ISect" | grep -vf "$kd" | tail -n1 |
