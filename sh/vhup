@@ -28,7 +28,7 @@ export CLIGEN=/dev/null PROCS_CONFIG=/dev/null
 procs find -f 'bin/mk1' -aWait          # Wait for extant; Cron/manual Launches
 
 lncs -m512 -r0 -t0 -n1 -e '' $* |       # Paths of first hard links filtered out
-  grep -ziv -f "$II" | grep -zv -f "$I" > "$p0" #..case-Insensitive&sensitive-ly
+  grep -ziv -f "$II" | grep -zv -f "$I" | sort -z > "$p0" #..case-Insens&sens-ly
                                        
 ( notIn -f "$p0" -p\$1 "$d" "$s" |      # Clear stale dig/set files&empty dirs
     xargs -0 rm -fdv ) 2>&1 | grep -v ': Directory not empty$'
