@@ -7,7 +7,7 @@
 ## compares for any wildly common digest values.  Basic flow: external digest
 ## update, `make` to update hash set files, `pair` to emit pairs & `comp` over
 ## pair lists to score digest|SetFile similarity.  See, e.g. `sh/ndup`.
-
+{.warning[Uninit]:off, warning[ProveInit]:off.} # Should be verbosity:2, not 1
 type D = uint64
 const DSz = D.sizeof    #TODO Generalize to !=8-byte-sized digest item slots
 
