@@ -1,9 +1,9 @@
-{.warning[Uninit]:off, warning[ProveInit]:off.} # Should be verbosity:2, not 1
 when not declared(File): import std/syncio
 include cligen/unsafeAddr
 import std/[random, bitops, strutils],
        cligen/[mfile, mslice, strUt, osUt, fileUt, statx]
 proc hash(ms: MSlice): uint64 = ms.toOpenArrayChar.hashCB
+
 var sBox: array[256, uint64]            # Rand Substitution-box for "Buzhash"
 proc sBox_init(seed: int) =             # Init S-box from user-controlled seed
   var r = initRand(seed*seed)

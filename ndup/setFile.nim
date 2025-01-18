@@ -1,6 +1,6 @@
 ## Utility code to deal with (NON-ZERO) hash code key sets as Linear Probed-
 ## Robin Hood reorganized files.
-{.warning[Uninit]:off, warning[ProveInit]:off.} # Should be verbosity:2, not 1
+
 const HSz = 8   #TODO Generalize to non-8-byte-sized hash codes.
 
 import std/[math, parseutils, hashes, strformat], memfiles as mf, cligen/osUt
