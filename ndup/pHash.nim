@@ -1,5 +1,6 @@
 when not declared(File): import std/[syncio] # Compile w/fast-math for dot prods
-import std/[os,strutils,terminal, posix, strscans, math, algorithm], cligen/osUt
+import std/[os,strutils,terminal, posix, strscans, math, algorithm],
+       cligen/[sysUt, osUt]
 
 if stdin.isatty:quit """Square Gray Frame Digester filter after Zauner2010. Eg.:
   ffmpeg -i X -vf scale=32:32,format=gray -c:v pgm -f rawvideo - | pHash > Y.NL
@@ -11,15 +12,15 @@ let m = if paramCount() > 0: 1.paramStr.parseInt else: 7 # Coskun2004 originally
 var line, wH, mV: string
 proc readFrame(f: File; w, h: var int; raster: var seq[byte]): bool =
   if not f.readLine(line): return       # EOF
-  if line != "P5"      : raise newException(IOError, "expected PGM P5")
-  if not f.readLine(wH): raise newException(IOError, "expected width height")
-  if not f.readLine(mV): raise newException(IOError, "expected max val")
-  if mV != "255"       : raise newException(ValueError, "Scale is not 8-bits")
-  if not scanf(wH, "$i $i", w, h): raise newException(IOError, "expected w h")
+  if line != "P5"      : IO !! "expected PGM P5"
+  if not f.readLine(wH): IO !! "expected width height"
+  if not f.readLine(mV): IO !! "expected max val"
+  if mV != "255"       : Value !! "Scale is not 8-bits"
+  if not scanf(wH, "$i $i", w, h): IO !! "expected w h"
   raster.setLen w*h
   let n = stdin.ureadBuffer(raster[0].addr, w*h)
   if n == 0: return
-  if n < w*h: raise newException(IOError, "partial raster: " & $n & " bytes")
+  if n < w*h: IO !! "partial raster: " & $n & " bytes"
   true
 
 proc mkDCT(dctK: var seq[float], n: int) {.used.} =
@@ -52,7 +53,7 @@ var w, h, n: int                # MainLoop: Read Frames,Calc&Emit hash-per-frame
 var raster: seq[byte]
 var dctK, coef: seq[float]
 while stdin.readFrame(w, h, raster):
-  if w != h: raise newException(IOError, "non-square PGM image")
+  if w != h: IO !! "non-square PGM image"
   if n != w: n=w; dctK.mkDCT n  # Mandate same image size frame to frame?
   coef.mkCoef dctK, raster, n
   let median = coef.median

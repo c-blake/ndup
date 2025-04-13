@@ -1,4 +1,4 @@
-import std/[hashes, tables, algorithm, os, math]
+import std/[hashes, tables, algorithm, os, math], cligen/sysUt
 when not declared(stderr): import std/syncio
 type
   InvIdx*[Key,Id] = object ## Inverted Index tailored for ndup.  Specifically, a
@@ -53,8 +53,7 @@ proc add*[Key,Id](ii: var InvIdx[Key,Id], key: Key, id: Id, cmax=100) =
       maxProbes = d; stderr.write "weak hash: ",d," probes in InvIdx.add\n"
   var j = i                             # Not found: add
   inc ii.pop
-  if 2*(ii.pop + 1) >= ii.data.len:
-    raise newException(ValueError, "too many unique hashes")
+  if 2*(ii.pop + 1) >= ii.data.len: Value!!"too many unique hashes"
   let cellSz = 2 * Key.sizeof
   while ii.data[2*j] != 0: j = (j + 1) and mask
   if j > i:                             # No table wrap around; just shift up
