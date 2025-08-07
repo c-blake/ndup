@@ -26,7 +26,7 @@ proc readFrame(f: File; w, h: var int; raster: var seq[byte]): bool =
 proc mkDCT(dctK: var seq[float], n: int) {.used.} =
   dctK.setLen n*m
   let k = sqrt(2.0 / n.float)   # Discrete Cosine Transform matrix
-  let w = PI / 2.0 / n.float            
+  let w = PI / 2.0 / n.float
   for i in 0 ..< m:             # m: number of DCT coefficients
     for j in 0 ..< n:           # n: square image size
       dctK[i*n + j] = k * cos(w * float(i + 1) * float(2*j + 1))
