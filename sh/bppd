@@ -1,0 +1,21 @@
+#!/bin/sh
+: "${ffp:=ffprobe -v error -select_streams v:0}"
+: "${showF:=-show_entries format=size,duration}"
+: "${showS:=-show_entries stream=width,height,avg_frame_rate}"
+: "${outF:=-of default=noprint_wrappers=1}"
+tmFmt='(dur<10?"%3.1f":"%3.0f")'
+szFmt='(size<1e9?"%5.3f":"%5.2f")'
+[ "${noh-unset}" = unset ] &&           # if not no header
+  printf "%4s %4s %4s %3s %5s %5s %6s %s\n" CBpp Wdth Hght Min Fps GB mDate name
+for f
+do
+  mt=$(stat -c%Y "$f"); (               # ffprobe already emits awk-compatible..
+  echo 'BEGIN{'                         #..syntax=>Convert awk print of desired.
+  $ffp $showF $showS $outF "$f"         # Emits lines like width=3840
+  echo '}END{ raw = 0.125*avg_frame_rate*duration*width*height' # bits->bytes
+  echo 'dur = duration/60'              # seconds -> minutes
+  echo 'date = strftime("%y%m%d", mt)'  # format as a Date
+  echo 'printf(".%03d %4d %4d " '$tmFmt' " %.2f " '$szFmt' " %6s %s\\n",'
+  echo '       size/raw*1000,width,height,dur,avg_frame_rate,size/1e9,date,nm)}'
+) | awk -v nm="$f" -v mt=$mt -f- #|tee /tmp/j.awk # -f- to run stdin is standard
+done    # Could also capture $ffp in a $(), but that leads to quoting pain.
