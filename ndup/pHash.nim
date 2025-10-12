@@ -18,7 +18,7 @@ proc readFrame(f: File; w, h: var int; raster: var seq[byte]): bool =
   if mV != "255"       : Value !! "Scale is not 8-bits"
   if not scanf(wH, "$i $i", w, h): IO !! "expected w h"
   raster.setLen w*h
-  let n = stdin.ureadBuffer(raster[0].addr, w*h)
+  let n = f.ureadBuffer(raster[0].addr, w*h)
   if n == 0: return
   if n < w*h: IO !! "partial raster: " & $n & " bytes"
   true
