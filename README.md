@@ -1,6 +1,4 @@
-Overview
---------
-
+# Overview
 Finding strictly duplicate files is [a pretty
 straightforward](https://github.com/c-blake/cligen/blob/master/examples/dups.nim)
 problem with most optimization opportunities being just filesystem size
@@ -9,9 +7,7 @@ subtle, but there are many applications - plagiarism detection, automatic
 related work finding, clean up of chaotically duplicated files, probably with
 human inspection in the loop.
 
-Choices
--------
-
+# Choices
 Choices to define "near" abound.  Each has various false positive|negative rates
 in various settings.  Here "false" itself is relative to other, possibly "know
 it when I see it"/subjective assessments.  Computational complexity of nearness
@@ -20,15 +16,16 @@ to these questions are unclear & likely very context dependent, this package is
 more a toolkit/framework to research methods on various collections rather than
 a "turn key solution".
 
-Core Idea
----------
-
-[The rsync/Spam Sum algorithm](https://rsync.samba.org/tech_report/) relates to
-the core idea.  That & [LBFS](http://www.sosp.org/2001/papers/mazieres.pdf) was
-my personal inspiration. { There is also this 2006 paper by [Jesse Kornblum I
-read](https://www.sciencedirect.com/science/article/pii/S1742287606000764) that
-I found around 10 years ago when I first worked on this.  I haven't looked into
-more recent academic work.  References are welcome. }
+# Core Idea
+The idea here relates to the less well known [Udi
+Manber](https://en.wikipedia.org/wiki/Udi_Manber) 1993/94
+[`sif`](https://dl.acm.org/doi/abs/10.5555/1267074.1267076) tool which was
+quickly followed by the [rsync/Spam Sum
+algorithm](https://rsync.samba.org/tech_report/).  My personal inspiration was
+[LBFS](http://www.sosp.org/2001/papers/mazieres.pdf).  { There is also a [2006
+paper](https://www.sciencedirect.com/science/article/pii/S1742287606000764) by
+Jesse Kornblum that I found around 2012 when I first worked on this.  I haven't
+looked into more recent academic work.  References are welcome. }
 
 The core idea of all the above is context-sensitive variable size frames (rather
 than fixed size blocks) decided by when the lower N bits of a [rolling
@@ -38,7 +35,8 @@ decided, a more collision-resistant hash is used for frame identity.  There are
 fine points to the digesting process like minimum block/file sizes, but this
 core digesting idea is simple & powerful.  It is elaborated upon in the papers
 mentioned above.  What it prevents is effects like "edit the first byte & shift
-everything" that come up in fixed length block-oriented ideas.
+everything" that come up in fixed length block-oriented ideas.  Sometimes this
+is now called "Content-Defined Chunking" or CDC.
 
 Depending upon "how near" files in a collection are, you will get more or fewer
 exact frame matches for "similar" files.  Set intersection thresholds (roughly
@@ -48,9 +46,7 @@ just maybe just call `cligen/textUt.distDamerau`}.  Similarity thresholds/knobs
 need to be user-driven/tunable since use cases determine desirability of false
 positive-negative trade-offs.
 
-Maybe Novel Wrinkle
--------------------
-
+# Maybe Novel & Interesting Wrinkle
 Unlike a fully automated context, near duplicate systems may be able to have
 "iterated by a human in the loop" deployment.  One thing I came up with myself
 (but may have prior work somewhere) is *multiple statistically independent
@@ -69,9 +65,7 @@ bits & pieces are present in the Nim port, but I must close a few loops to
 finish this.}  This really needs a reference solution in an organic context for
 proper evaluation {TODO}.
 
-Evaluation
-----------
-
+# Evaluation
 While no test data set is perfect, an ArpaNet/InterNet Request For Comment (RFC)
 collection is nice for many reasons.  It's a public dataset with clear right to
 distribute.  It is just small enough to perhaps be humanly manageable.  Spanning
