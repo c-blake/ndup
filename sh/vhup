@@ -17,7 +17,7 @@
 : ${ff:="ffmpeg < /dev/null -i %i $ff_args - 2> /dev/null"}
 : ${hv:="pHash"}        # This & above define vid hash; 32 & pHash 7|8 work ok
 : ${vh:="[ -e %o ]||{ mkdir -p %o && rmdir %o; }; $ff | $hv > %o || rm -f %o"}
-: ${mm:="[ -e %o ]||{ mkdir -p %o && rmdir %o; };noh= bppd %i > %o || rm -f %o"}
+: ${mm:="[ -e %o ]||{ mkdir -p %o && rmdir %o; };noh=1 bppd %i > %o ||rm -f %o"}
 : ${runM:="sh -x"}      #^^^for more general paths do: vh/mm="i=%i script"
 : ${run:="sh -x"}       # PS4='+$EPOCHREALTIME ' in call env, stripe -b 4, ..
 # $HOME/.config/nsets | NSETS_MAKE="-s2100 -S900 -f.20 -F.20" # clip intro/outro
@@ -34,7 +34,7 @@ procs find -f 'bin/mk1' -aWait          # Wait for extant; Cron/manual Launches
 lncs -m512 -r0 -t0 -n1 -e '' $* |       # Paths of first hard links filtered out
   grep -ziv -f "$II" | grep -zv -f "$I" | sort -z > "$p0" #..case-Insens&sens-ly
 
-( notIn -f "$p0" -p\$1 "$d" "$s" |      # Clear stale dig/set files&empty dirs
+( notIn -f "$p0" -p\$1 "$d" "$s" "$m" | # Clear stale dig/met/set files&emptyDir
     xargs -0 rm -fdv ) 2>&1 | grep -v ': Directory not empty$'
 ( cd "$d"                               # Nix any old/empty files|dirs
   find -size 0 -type f -print0 | xargs -0 rm -fv )

@@ -50,7 +50,7 @@ cz() {          # Cluster siZe: Emit total size in KiB before repeating names
 siMet() {       # Similarity score; Just %~identical frames of first in ISect
   awk -F "$T" -v nm="$1" -v met="$2" '{if ($4 == nm || $5 == nm) {
     printf("%05.2f%% ", 100*$1 / ($2 < $3 ? $2 : $3)); exit } }
-    END{ while ((getline < met) > 0) { print } }' < "$nd/ISect"; }
+    END{ while ((getline < met) > 0) { print $0 " " nm } }' < "$nd/ISect"; }
 
 awk '$1>60' < $nd/ISect | cols -d"$T" -s"$T" 4 5 | # Connected Component filter
   conncomp | cz | sort -n | tee "$sU" | cols -d"$T" -s"$T" -c 1 | colSort |
