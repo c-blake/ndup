@@ -16,7 +16,7 @@ proc invIdxSpace*(capacity: uint64): uint64 = ## Base space (`Key` units)
   2u64*(capacity.int + 1).nextPowerOfTwo.uint64
 
 proc initInvIdx*[Key,Id](capacity: uint64): InvIdx[Key,Id] =
-  result.data = newSeq[Key](capacity.invIdxSpace)
+  result.data = newSeq[Key](capacity.invIdxSpace.Natural)
   result.ovflow = initTable[Key, seq[Id]](4)
   result.mask = (1 shl (8 * Id.sizeof)) - 1
   result.shifts = newSeq[int](0)

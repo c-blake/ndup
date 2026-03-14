@@ -14,6 +14,7 @@ template s(c): untyped = sBox[ord(c)]
 proc doIn*(outs: seq[File], fMin=0, w=61, mask=0u64, vals: seq[uint64],
            inp: MSlice): bool =
   ## Simultaneously frame & hash for each of `vals`.
+  let w  = range[0 .. int.sizeof*8](w)
   var rh = 0u64                                 # R)olling H)ash
   var i0 = newSeq[int](vals.len)                # block starts
   for i in 0 ..< inp.len:                       # For each byte:
