@@ -19,7 +19,8 @@ proc populateTId =      # DOCUMENT PROCESSING (to end of `proc tf`)
   fToks = open(Dir/Tok, fmAppend)       # Append mode for new tokens
 
 when defined stem:   # Could also auto-probe; Wrap snowball-stemmer for English
-  {.passl: "/usr/lib64/libstemmer.so".} # YOU MAY NEED TO ADJUST THIS!
+  const stemmer {.strdefine.} = "/usr/lib64/libstemmer.so" # ADJUST AS NEEDED!
+  {.passl: stemmer.}
   type sb_stemmer {.bycopy.} = object
   proc sb_stemmer_new(algo:cstring; encode:cstring): ptr sb_stemmer {.importc.}
   proc sb_stemmer_stem(s:ptr sb_stemmer; w:pointer; n:cint): pointer {.importc.}
