@@ -153,7 +153,8 @@ proc like(pre="", dir=".like", tok=".tok.Dn", word="", fmt="",
     let ti=if doTI: formatFloat(G_B.dot(q.tfIdf), ffDecimal,5) else: "0"
     let tr=if doTR: formatFloat(GBR.dot(q.tfIdf), ffDecimal,5) else: "0"
     let nb=if doNB: (q.unitizeL2;formatFloat(nbW.dot(q), ffDecimal,5)) else: "0"
-    echo fmt % ["q", qNm, "ti", ti, "tr", tr, "nb", nb]
+    let qSz = qNm.getFileSize
+    echo fmt % ["q", qNm, "z", $qSz, "ti", ti, "tr", tr, "nb", nb]
 
 when isMainModule: include cligen/mergeCfgEnv; dispatch like, help={
   "pre" : "``catz $1`` preprocesses with *catz*",
