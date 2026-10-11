@@ -3,6 +3,7 @@ import std/[syncio, os, tables, strutils, strformat, algorithm, math, sugar],
 type Id = uint32        # TYPES         # <= 4-gibi-toks should be plenty
 type If = tuple[id: Id, v: float32]     # Int tokenId, float weight pair
 type V  = seq[If]; const V0: V = @[]    # Sparse Id,weight vector type
+const sq = '\''                         # Single Quote
 
 var Pre* = ""           # GLOBALS       # Preprocessor; e.g. "catz $1"
 var Dir* = ".like"                      # Where to put .tok, foo.NIf metadata
@@ -28,17 +29,25 @@ when defined stem:   # Could also auto-probe; Wrap snowball-stemmer for English
   let st = sb_stemmer_new("english", "UTF_8") # or "ISO_8859_1"
 
 proc toId(ms: var MSlice): Id =         # Retrieve Id or ingest a token.
+  # Admitting sq for contractions/possessives means quote/misquote can sneak in.
+  while ms.len>0 and ms[0]==sq and ms[ms.len-1]==sq:  # Balanced 'word' ->"word"
+    ms.mem = ms.mem +! 1; ms.len = max(0, ms.len - 2)
+  while ms.len>0 and ms[0] == sq:                     # unBal "'*word" -> "word"
+    ms.mem = ms.mem +! 1; ms.len = max(0, ms.len - 1)
+  while ms.len>0 and ms[ms.len - 1] == sq:            # unBal "word'*" -> "word"
+    ms.mem = ms.mem +! 1; ms.len = max(0, ms.len - 1)
   when declared st:                                   # _stem() -> mem owned by
     ms.mem = st.sb_stemmer_stem(ms.mem, ms.len.cint)  #..stemmer,but either done
     ms.len = st.sb_stemmer_length.int                 #..post[]|write/dup here.
-  try: return tId[ms]                   #NOTE This DOES NOT guard .tok against
-  except:                               #     corrupting concurrent updates.
-    fToks.urite ms, '\n'; ms.dup        # Add new token to the .tok file & mem
-    tId[ms] = tO.Id                     #..table with *intended prog-lifetime*.
-    result = tO.Id                      # Non-0 Id is old len
-    tO += ms.len + 1                    # Update running token offset to new EOF
+  if ms.len > 0:
+    try: return tId[ms]                 #NOTE This DOES NOT guard .tok against
+    except:                             #     corrupting concurrent updates.
+      fToks.urite ms, '\n'; ms.dup      # Add new token to the .tok file & mem
+      tId[ms] = tO.Id                   #..table with *intended prog-lifetime*.
+      result = tO.Id                    # Non-0 Id is old len
+      tO += ms.len + 1                  # Update running token offset to new EOF
 
-var wordCs*: set[char] = {'A'..'Z', 'a'..'z', '0'..'9', '\''}
+var wordCs*: set[char] = {'A'..'Z', 'a'..'z', '0'..'9', sq}
 const upAsc = {'A'..'Z'}                # Insist uppercase in-token; ~10% faster
 iterator toks(nm: string): Id =         # Pre-process & tokenize input files
   try:
